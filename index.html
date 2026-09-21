@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>اختبار TypeScript Decorators</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f3f7f8; --card:#ffffff; --text:#12233d; --muted:#5b6b80;
+  --navy:#12233d; --teal:#0f9d9a; --orange:#f28c28;
+  --border:#d9e3e8; --ok:#1e9e5a; --ok-bg:#e3f6ec; --bad:#d64545; --bad-bg:#fdeaea;
+  --code-bg:#eaf1f4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c1626; --card:#14233a; --text:#eaf2f7; --muted:#9db0c4;
+    --border:#263a57; --ok:#39c27d; --ok-bg:#12382a; --bad:#ef6a6a; --bad-bg:#3d1b1f; --code-bg:#1d3150;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c1626; --card:#14233a; --text:#eaf2f7; --muted:#9db0c4;
+  --border:#263a57; --ok:#39c27d; --ok-bg:#12382a; --bad:#ef6a6a; --bad-bg:#3d1b1f; --code-bg:#1d3150;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',Tahoma,Arial,sans-serif;line-height:1.7}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+header{text-align:center;margin-bottom:18px}
+header h1{margin:0 0 4px;font-size:1.5rem;color:var(--teal)}
+header p{margin:0;color:var(--muted);font-size:.95rem}
+.bar{height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin:14px 0 6px}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--orange));transition:width .4s}
+.meta{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.q{font-size:1.15rem;font-weight:700;margin:0 0 16px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:right;font:inherit;color:inherit;background:var(--card);border:2px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:transform .1s,border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--teal);transform:translateY(-1px)}
+.opt .l{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--code-bg);display:grid;place-items:center;font-weight:700;font-size:.95rem}
+.opt:disabled{cursor:default}
+.opt.correct{background:var(--ok-bg);border-color:var(--ok)}
+.opt.correct .l{background:var(--ok);color:#fff}
+.opt.wrong{background:var(--bad-bg);border-color:var(--bad);animation:shake .35s}
+.opt.wrong .l{background:var(--bad);color:#fff}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+code{direction:ltr;unicode-bidi:isolate;display:inline-block;font-family:Consolas,Menlo,monospace;font-size:.9em;background:var(--code-bg);padding:0 6px;border-radius:6px}
+.fb{margin-top:6px;padding:10px 14px;border-radius:10px;font-size:.95rem;display:none}
+.fb.show{display:block}
+.fb.ok{background:var(--ok-bg);color:var(--ok)}
+.fb.no{background:var(--bad-bg);color:var(--bad)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 22px;cursor:pointer;background:var(--orange);color:#fff;margin-top:14px}
+.btn.sec{background:var(--teal)}
+.btn[hidden]{display:none}
+.result{text-align:center}
+.result .score{font-size:3rem;font-weight:700;color:var(--teal);margin:6px 0}
+.result p{margin:4px 0;color:var(--muted)}
+canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="wrap">
+  <header>
+    <h1>اختبار الـ Decorators في TypeScript</h1>
+  </header>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="meta"><span id="count"></span><span id="score"></span></div>
+  <div id="stage"></div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {q:"ما هو الملف الأساسي في مشروع TypeScript الذي يجب تعديله لتفعيل ميزة الـ Decorators؟",
+   o:["`package.json`","`tsconfig.json`","`index.js`","`webpack.config.js`"],a:1,
+   e:"نفعّل الميزة من خلال خيار experimentalDecorators داخل ملف tsconfig.json."},
+  {q:"كيف يُكتب الـ Method Decorator العادي فوق الدالة عند استخدامه؟",
+   o:["باستخدام الأقواس هكذا: `@LogMethod()`","بدون أقواس نهائياً هكذا: `@LogMethod`","داخل أقواس مربعة هكذا: `[LogMethod]`","مع تمرير نص بداخلها هكذا: `@LogMethod(\"test\")`"],a:1,
+   e:"الـ Decorator العادي يُكتب بدون أقواس، أما الأقواس فتعني أننا نستدعي Factory."},
+  {q:"ما هي المشكلة الأساسية التي حلها لنا الـ Decorator Factory؟",
+   o:["جعل الكود يعمل أسرع في متصفح الإنترنت","إمكانية تمرير باراميترات وخيارات (Parameters) للـ Decorator عند استخدامه","إلغاء الحاجة لملف `tsconfig.json`","تحويل الـ TypeScript إلى JavaScript بشكل تلقائي"],a:1,
+   e:"الـ Factory دالة ترجع Decorator، فتسمح لنا بتمرير خيارات مخصصة له."},
+  {q:"ماذا يعني مفهوم الـ \"Wrapping\" (التغليف) الخاص بالـ Decorator حسب المفهوم المشروح؟",
+   o:["حذف الكود الأصلي للدالة واستبداله بكود جديد بالكامل.","وضع غلاف حول الدالة الأصلية لإضافة سلوك قبلها أو بعدها مع بقاء الدالة تؤدي وظيفتها.","ضغط ملفات الكود لتسريع تحميل الصفحة.","تشفير كلمات المرور داخل قاعدة البيانات."],a:1,
+   e:"التغليف يضيف سلوكاً قبل الدالة أو بعدها دون حذف الدالة الأصلية أو تغيير وظيفتها."},
+  {q:"كيف يتم التعامل مع فحص الأمان البرمجي (Type Safety) في لغة TypeScript مقارنة بـ JavaScript بالنسبة للمزخرفات؟",
+   o:["التايبسكريبت لا توفر أي فحص للأنواع، بينما الجافا سكريبت صارمة جداً.","التايبسكريبت توفر فحصاً قوياً وتُجبرك على تحديد أنواع البيانات لمنع الأخطاء، بينما الجافا سكريبت لا توفر ذلك.","اللغتان تتطابقان تماماً في عدم توفير أي فحص للأنواع.","الجافا سكريبت توفر واجهات مدمجة مثل `ClassMethodDecoratorContext` غير الموجودة في التايبسكريبت."],a:1,
+   e:"TypeScript تفحص الأنواع وتمنع الأخطاء مبكراً، بينما JavaScript لا توفر هذا الفحص."},
+  {q:"أي من الاستخدامات العملية التالية يُعد مثالاً على تطبيق الـ (Validation) باستخدام المزخرفات حسب النص؟",
+   o:["التأكد تلقائياً أن المستخدم كتب بريداً إلكترونياً حقيقياً يحتوي على علامة `@` قبل أن يستقبله النظام.","قياس الوقت بالملي ثانية لمعرفة سرعة التطبيق.","منع المستخدم العادي من حذف الحساب.","تخزين الإجابات المعقدة مؤقتاً."],a:0,
+   e:"الـ Validation هو التحقق من صحة المدخلات، مثل التأكد من صحة البريد الإلكتروني. أما الخيارات الأخرى فهي Timing وAuthorization وCaching."},
+  {q:"لماذا نستخدم الأمر `originalMethod.apply(this, args)` بدلاً من استدعاء الدالة مباشرة هكذا `originalMethod()`؟",
+   o:["لكي نحافظ على سياق الكلاس (`this`) ونمرر نفس الباراميترات الأصلية (`args`) للدالة تماماً دون ضياع","لأن لغة تايبرسكريبت لا تقبل استدعاء الدوال بدونه","لزيادة سرعة معالجة المعالج (CPU) فقط","لطباعة رسالة خطأ تلقائية في حال فشل الكود"],a:0,
+   e:"الاستدعاء المباشر يضيّع قيمة this والباراميترات، أما apply فتحافظ عليهما."}
+  ,{q:"ما هي المشكلة البرمجية الأساسية التي دفعتنا لاستخدام الـ Decorator في الكود؟",
+   o:["بطء تنفيذ الدوال داخل الكلاسات.","تكرار نفس السطر البرمجي (مثل `console.log`) داخل كل دالة (Method).","عدم توافق الكود مع متصفحات الإنترنت الحديثة.","كثرة الأخطاء الإملائية في أسماء المتغيرات."],a:1,
+   e:"الـ Decorator يسمح بكتابة السلوك المتكرر مرة واحدة وتطبيقه على أي دالة، بدل تكرار نفس السطر في كل دالة."}
+];
+
+const LET = ["أ","ب","ج","د"];
+const stage = document.getElementById('stage');
+const prog = document.getElementById('prog');
+const countEl = document.getElementById('count');
+const scoreEl = document.getElementById('score');
+let idx = 0, score = 0, answered = false;
+
+function fmt(s){
+  const esc = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return esc.replace(/`([^`]+)`/g,'<code>$1</code>');
+}
+
+function render(){
+  answered = false;
+  const item = QUESTIONS[idx];
+  countEl.textContent = 'السؤال ' + (idx+1) + ' من ' + QUESTIONS.length;
+  scoreEl.textContent = 'النتيجة: ' + score;
+  prog.style.width = (idx / QUESTIONS.length * 100) + '%';
+  stage.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<p class="q">' + fmt(item.q) + '</p>';
+  const btns = item.o.map((t,i)=>{
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = '<span class="l">' + LET[i] + '</span><span>' + fmt(t) + '</span>';
+    b.onclick = () => choose(i);
+    card.appendChild(b);
+    return b;
+  });
+  const fb = document.createElement('div'); fb.className = 'fb'; card.appendChild(fb);
+  const next = document.createElement('button');
+  next.className = 'btn'; next.hidden = true;
+  next.textContent = idx === QUESTIONS.length-1 ? 'عرض النتيجة' : 'السؤال التالي';
+  next.onclick = () => { idx++; idx < QUESTIONS.length ? render() : finish(); };
+  card.appendChild(next);
+  stage.appendChild(card);
+  card._refs = {btns, fb, next};
+  stage._card = card;
+}
+
+function choose(i){
+  if(answered) return;
+  answered = true;
+  const item = QUESTIONS[idx];
+  const {btns, fb, next} = stage._card._refs;
+  btns.forEach(b => b.disabled = true);
+  btns[item.a].classList.add('correct');
+  if(i === item.a){
+    score++;
+    fb.className = 'fb show ok';
+    fb.textContent = '✅ إجابة صحيحة! ' + item.e;
+    const r = btns[i].getBoundingClientRect();
+    burst(r.left + r.width/2, r.top + r.height/2);
+  } else {
+    btns[i].classList.add('wrong');
+    fb.className = 'fb show no';
+    fb.textContent = '❌ إجابة خاطئة. ' + item.e;
+  }
+  scoreEl.textContent = 'النتيجة: ' + score;
+  next.hidden = false;
+}
+
+function finish(){
+  prog.style.width = '100%';
+  countEl.textContent = 'انتهى الاختبار';
+  const pct = Math.round(score / QUESTIONS.length * 100);
+  const msg = pct === 100 ? 'ممتاز! علامة كاملة 🎉' : pct >= 70 ? 'أحسنت، مستوى قوي 👏' : 'راجع الأسئلة الخاطئة وأعد المحاولة 💪';
+  stage.innerHTML = '<div class="card result"><h2>النتيجة النهائية</h2><div class="score">' + score + ' / ' + QUESTIONS.length + '</div><p>' + pct + '%</p><p>' + msg + '</p><button class="btn sec" id="again">إعادة الاختبار</button></div>';
+  document.getElementById('again').onclick = () => { idx = 0; score = 0; render(); };
+  if(pct >= 70){ const w = innerWidth; burst(w*0.25, 200, 80); burst(w*0.75, 200, 80); burst(w*0.5, 140, 100); }
+}
+
+/* Confetti / fireworks */
+const cv = document.getElementById('fx');
+const ctx = cv.getContext('2d');
+let parts = [], running = false;
+function size(){ cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; }
+addEventListener('resize', size); size();
+const COLORS = ['#0f9d9a','#f28c28','#12233d','#ffd166','#ef476f','#06d6a0'];
+function burst(x, y, n){
+  n = n || 60;
+  for(let i=0;i<n;i++){
+    const a = Math.random()*Math.PI*2, s = 3 + Math.random()*7;
+    parts.push({x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s - 3, g:.18, life:1, d:.012+Math.random()*.012,
+      w:5+Math.random()*5, h:3+Math.random()*5, r:Math.random()*6, vr:(Math.random()-.5)*.4,
+      c:COLORS[Math.floor(Math.random()*COLORS.length)]});
+  }
+  if(!running){ running = true; requestAnimationFrame(tick); }
+}
+function tick(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  parts = parts.filter(p => p.life > 0);
+  for(const p of parts){
+    p.vy += p.g; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life -= p.d;
+    ctx.save();
+    ctx.globalAlpha = Math.max(p.life,0);
+    ctx.translate(p.x*devicePixelRatio, p.y*devicePixelRatio);
+    ctx.rotate(p.r);
+    ctx.fillStyle = p.c;
+    ctx.fillRect(-p.w/2, -p.h/2, p.w*devicePixelRatio, p.h*devicePixelRatio);
+    ctx.restore();
+  }
+  if(parts.length) requestAnimationFrame(tick); else { running = false; ctx.clearRect(0,0,cv.width,cv.height); }
+}
+
+render();
+</script>
+</body>
+</html>
